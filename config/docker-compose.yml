@@ -1,0 +1,54 @@
+version: "2.1"
+services:
+    traefik:
+        image: "traefik:2.3"
+        container_name: "traefik"
+        restart: unless-stopped
+        command:
+            - "--providers.docker=true"
+            - "--providers.docker.exposedbydefault=false"
+            - "--entrypoints.web.address=:80"
+            - "--entrypoints.websecure.address=:443"
+            - "--log.level=DEBUG" # DEBUG, PANIC, FATAL, ERROR, WARN, INFO
+            - "--log.filePath=/logs/traefik.log"
+            - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+            - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+            # - "--certificatesresolvers.myresolver.acme.email=test@example.com"
+            - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+            - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+            - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
+        ports:
+            - "80:80"
+            - "443:443"
+        volumes:
+            - "/var/run/docker.sock:/var/run/docker.sock:ro"
+            - "./data/traefik/logs/:/logs/"
+            - "./letsencrypt:/letsencrypt"
+
+    couchdb:
+        image: couchdb:latest
+        container_name: obsidian-livesync
+        environment:
+            - COUCHDB_USER=${COUCHDB_USER}
+            - COUCHDB_PASSWORD=${COUCHDB_PASSWORD}
+        volumes:
+            - ./data:/opt/couchdb/data
+            - ./local.ini:/opt/couchdb/etc/local.ini
+        restart: unless-stopped
+        labels:
+            - "traefik.enable=true"
+            - "traefik.docker.network=proxy"
+            - "traefik.http.routers.obsidian-livesync.rule=Host(`${COUCHDB_DOMAIN}`)"
+            - "traefik.http.routers.obsidian-livesync.entrypoints=websecure"
+            - "traefik.http.routers.obsidian-livesync.service=obsidian-livesync"
+            - "traefik.http.services.obsidian-livesync.loadbalancer.server.port=5984"
+            - "traefik.http.routers.obsidian-livesync.tls=true"
+            - "traefik.http.routers.obsidian-livesync.tls.certresolver=myresolver"
+            - "traefik.http.routers.obsidian-livesync.middlewares=obsidiancors"
+            # The part needed for CORS to work on Traefik 2.x starts here
+            - "traefik.http.middlewares.obsidiancors.headers.accesscontrolallowmethods=GET,PUT,POST,HEAD,DELETE"
+            - "traefik.http.middlewares.obsidiancors.headers.accesscontrolallowheaders=accept,authorization,content-type,origin,referer"
+            - "traefik.http.middlewares.obsidiancors.headers.accesscontrolalloworiginlist=app://obsidian.md,capacitor://localhost,http://localhost"
+            - "traefik.http.middlewares.obsidiancors.headers.accesscontrolmaxage=3600"
+            - "traefik.http.middlewares.obsidiancors.headers.addvaryheader=true"
+            - "traefik.http.middlewares.obsidiancors.headers.accessControlAllowCredentials=true"

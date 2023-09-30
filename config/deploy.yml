@@ -1,0 +1,34 @@
+- name: Deploy CouchDB
+  hosts: notes-server
+  connection: ssh
+  become: true
+  become_user: root
+  tasks:
+      - name: Create /App dir
+        ansible.builtin.file:
+            path: "/App"
+            state: directory
+            mode: "0777"
+
+      - name: Copy .env to server
+        ansible.builtin.copy:
+            src: ".env"
+            dest: "/App"
+            mode: "0644"
+
+      - name: Copy local.ini to server
+        ansible.builtin.copy:
+            src: "local.ini"
+            dest: "/App"
+            mode: "0644"
+
+      - name: Copy docker-compose.yml to server
+        ansible.builtin.copy:
+            src: "docker-compose.yml"
+            dest: "/App/"
+            mode: "0644"
+
+      - name: Run docker-compose.yml
+        community.docker.docker_compose:
+            project_src: "/App"
+            remove_orphans: true
