@@ -52,3 +52,14 @@ services:
             - "traefik.http.middlewares.obsidiancors.headers.accesscontrolmaxage=3600"
             - "traefik.http.middlewares.obsidiancors.headers.addvaryheader=true"
             - "traefik.http.middlewares.obsidiancors.headers.accessControlAllowCredentials=true"
+
+    wichteln:
+        image: ghcr.io/christianwaldmann/wichteln:v0.0.6
+        container_name: wichteln
+        restart: unless-stopped
+        env_file: .env
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.wichteln.rule=Host(`${WICHTELN_DOMAIN}`)"
+            - "traefik.http.routers.wichteln.entrypoints=websecure"
+            - "traefik.http.routers.wichteln.tls.certresolver=myresolver"
