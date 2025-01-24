@@ -1,7 +1,7 @@
 version: "2.1"
 services:
     traefik:
-        image: "traefik:2.3"
+        image: "traefik:3.3"
         container_name: "traefik"
         restart: unless-stopped
         command:
@@ -17,6 +17,7 @@ services:
             - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
             - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
             - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
+            - "--log.maxsize=100"
         ports:
             - "80:80"
             - "443:443"
